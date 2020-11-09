@@ -1,16 +1,19 @@
 package com.example.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.sql.DataSource;
 
 @SpringBootApplication
 public class DemoSecurityApplication {
@@ -40,19 +43,16 @@ class HomeResource {
     }
 }
 
-@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
 class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+
+    private final DataSource dataSource;
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication()
-            .withUser("blah")
-            .password("blah")
-            .roles("USER")
-            .and()
-            .withUser("foo")
-            .password("foo")
-            .roles("ADMIN");
+        auth.jdbcAuthentication()
+            .dataSource(dataSource);
     }
 
     @Override
@@ -60,7 +60,8 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         http.authorizeRequests()
             .antMatchers("/admin").hasRole("ADMIN")
             .antMatchers("/user").hasAnyRole("ADMIN", "USER")
-            .antMatchers("/").permitAll()
+            .antMatchers("/")
+            .permitAll()
             .and().formLogin();
     }
 
